@@ -1,49 +1,64 @@
 # Apple Music Discord Rich Presence
 
-A lightweight, efficient, and automated Discord Rich Presence integration for Apple Music on Windows.
-
-## Overview
-
-This application provides real-time status updates on Discord, displaying the currently playing track on Apple Music or iTunes. It is designed to be highly resource-efficient and strictly filters out other media applications to ensure accurate presence information.
+Shows what you're playing in Apple Music (or iTunes) on Windows as your Discord status: track, artist, album art and a live progress bar. It runs quietly in the background and uses very little CPU or memory.
 
 ## Features
 
-- **Strict Detection**: Accurately identifies Apple Music and iTunes, ignoring other media players such as Chrome or Spotify.
-- **Album Artwork**: Automatically retrieves high-resolution album covers using the iTunes API.
-- **Playback Timeline**: Displays the elapsed and remaining time for the current track.
-- **Optimized Performance**: Maintains a minimal resource footprint, utilizing less than 1% CPU and approximately 60MB RAM.
-- **Enhanced Stability**: Automatically truncates excessively long track titles to prevent Discord API errors.
-- **Process Management**: Includes batch scripts for convenient startup and process termination.
+- **Apple Music only:** reads the Windows media controls but ignores every other player (Spotify, browsers and so on), so your status never shows the wrong thing
+- **Album art:** looks up the cover for each track through the iTunes Search API
+- **Live timeline:** Discord shows elapsed and remaining time for the current song
+- **Lightweight:** polls every few seconds, typically under 1% CPU and around 60 MB of RAM
+- **Safe with long titles:** titles and artist names are trimmed to fit Discord's limits
+- **Recovers on its own:** reconnects to Discord and to the Windows media session if either drops
+- **Background mode and autostart:** start it without a console window, stop it with one click, or add it to Windows startup
 
-## Prerequisites
+## Requirements
 
-- Python 3.10 or higher installed on your system.
-- An active Discord Application ID.
+- Windows 10 or 11
+- Python 3.10+
+- The Discord desktop app
+- A Discord application (free) from the [Discord Developer Portal](https://discord.com/developers/applications). Its name is what appears as "Listening to …" on your profile.
 
-## Installation and Configuration
+## Setup
 
-1. **Clone the repository** (or download the source code).
-2. **Install the required dependencies** via `pip`:
-   ```bash
-   pip install -r requirements.txt
-   ```
-3. **Configure the application secrets**:
-   - Rename the `secrets_example.py` file to `secrets.py`.
-   - Open `secrets.py` and replace `YOUR_CLIENT_ID_HERE` with your actual Discord Application ID.
-   - *Note: `secrets.py` is included in `.gitignore` to protect your sensitive credentials.*
+```bash
+git clone https://github.com/Adarsh-Aravind/AppleMusic-Discord-RPC.git
+cd AppleMusic-Discord-RPC
+pip install -r requirements.txt
+```
+
+1. Rename `secrets_example.py` to `secrets.py`.
+2. Replace `YOUR_CLIENT_ID_HERE` with your Discord application's ID. `secrets.py` is git-ignored.
+3. Optional: in your Discord application, go to **Rich Presence → Art Assets** and upload an image named `playing`. It's shown as the small icon next to the album art.
 
 ## Usage
 
-- **To start the application**: Double-click the `Start Apple Music RPC.bat` file.
-- **To stop the application**: Double-click the `Stop Apple Music RPC.bat` file.
+| Script | What it does |
+| ------ | ------------ |
+| `Start Apple Music RPC.bat` | Starts the presence in the background (no console window) |
+| `Stop Apple Music RPC.bat` | Stops any running instance |
+| `Debug Apple Music RPC.bat` | Stops background instances and runs in a console so you can see "Now Playing" logs |
+| `python autostart.py` | Adds the app to Windows startup for your user account |
 
-## Project Structure
+To remove it from startup, delete the `AppleMusicRPC` entry under `HKEY_CURRENT_USER\Software\Microsoft\Windows\CurrentVersion\Run`, or disable it in Task Manager's **Startup apps**.
 
-- `main.py`: Contains the core application logic and Discord RPC integration.
-- `itunes_search.py`: Handles the fetching of album artwork from the iTunes API.
-- `kill_switch.py`: Provides the functionality to forcefully terminate the rich presence process.
-- `monitor_resources.py`: A utility script for monitoring CPU and RAM usage.
+## How it works
+
+1. `main.py` asks Windows for the current media session (`GlobalSystemMediaTransportControlsSessionManager`, via `winsdk`).
+2. If the session belongs to Apple Music or iTunes, it reads the title, artist, album and timeline.
+3. When the track changes, `itunes_search.py` fetches the album cover URL.
+4. The presence is sent to the Discord desktop app over local IPC with `pypresence`. When playback pauses or stops, the status is cleared.
+
+## Project structure
+
+| File | Purpose |
+| ---- | ------- |
+| `main.py` | Media session polling and Discord presence updates |
+| `itunes_search.py` | Album art lookup via the iTunes Search API |
+| `kill_switch.py` | Finds and stops running instances |
+| `autostart.py` | Registers the app to start with Windows |
+| `secrets_example.py` | Template for your Discord client ID |
 
 ## License
 
-This project is licensed under the MIT License.
+MIT
